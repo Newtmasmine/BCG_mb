@@ -24,7 +24,7 @@
         
         .container {
             width: 100%;
-            max-width: 900px;
+            max-width: 950px;
             background: rgba(0, 0, 30, 0.85);
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -617,7 +617,7 @@
         }
         
         .table-body {
-            max-height: 500px;
+            max-height: 300px;
             overflow-y: auto;
         }
         
@@ -998,8 +998,8 @@
                     <ul>
                         <li><strong>游戏轮数：</strong>总共9轮游戏（3轮低风险、3轮中风险、3轮高风险，随机分布）</li>
                         <li><strong>卡片设置：</strong>每轮固定有16张卡片</li>
-                        <li><strong>奖励卡：</strong>固定获得积分500</li>
-                        <li><strong>炸弹卡：</strong>固定扣除积分850</li>
+                        <li><strong>奖励卡：</strong>固定获得积分300</li>
+                        <li><strong>炸弹卡：</strong>固定扣除积分950</li>
                         <li><strong>奖金累积：</strong>每轮成功获得的奖金会累加到总奖金中</li>
                     </ul>
                 </div>
@@ -1007,7 +1007,7 @@
                 <div class="rules-section">
                     <h2>💣 炸弹机制</h2>
                     <ul>
-                        <li>触碰到炸弹将<span class="highlight">固定扣除积分850</span></li>
+                        <li>触碰到炸弹将<span class="highlight">固定扣除积分950</span></li>
                         <li>炸弹数量根据风险等级而定</li>
                         <li>可以随时选择"结束本轮"来保护已获得的奖金</li>
                     </ul>
@@ -1148,6 +1148,37 @@
         </div>
     </div>
 
+    <!-- 情绪选择对话框 -->
+    <div id="emotion-dialog" class="confirm-dialog" style="display: none;">
+        <div class="dialog-content" style="max-width: 500px;">
+            <h3>情绪状态调查</h3>
+            <p style="margin-bottom: 20px;">请问这一局结束时，你的情绪状态最接近以下哪种？</p>
+            <div style="text-align: left; margin-bottom: 25px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; transition: all 0.3s;">
+                        <input type="radio" name="emotion" value="A" style="width: auto; margin-right: 10px; cursor: pointer;">
+                        <span style="color: #fff; font-size: 1rem;">A. 愉快、满意、轻松</span>
+                    </label>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; transition: all 0.3s;">
+                        <input type="radio" name="emotion" value="B" style="width: auto; margin-right: 10px; cursor: pointer;">
+                        <span style="color: #fff; font-size: 1rem;">B. 平静、无明显情绪</span>
+                    </label>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; transition: all 0.3s;">
+                        <input type="radio" name="emotion" value="C" style="width: auto; margin-right: 10px; cursor: pointer;">
+                        <span style="color: #fff; font-size: 1rem;">C. 紧张、失望、沮丧</span>
+                    </label>
+                </div>
+            </div>
+            <div class="dialog-buttons">
+                <button id="emotion-confirm" class="dialog-btn confirm">确定</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 付费确认对话框 -->
     <div id="payment-dialog" class="confirm-dialog" style="display: none;">
         <div class="dialog-content">
@@ -1166,8 +1197,8 @@
         const gameData = {
             // 卡片配置
             cards: [],
-            rewardValue: 500, // 固定奖励金额
-            bombPenalty: 850, // 固定炸弹惩罚金额
+            rewardValue: 300, // 固定奖励金额
+            bombPenalty: 950, // 固定炸弹惩罚金额
             bombCount: 0, // 将在游戏开始时随机生成
             
             // 轮次配置
@@ -1175,9 +1206,9 @@
             currentRound: 0, // 当前轮次（1-9）
             roundTypes: [], // 存储每轮的风险类型
             riskLevels: {
-                low: { bombs: 4, rewards: 12 },    // 低风险：4炸弹，12奖励
-                medium: { bombs: 6, rewards: 10 }, // 中风险：6炸弹，10奖励
-                high: { bombs: 8, rewards: 8 }     // 高风险：8炸弹，8奖励
+                low: { bombs: 2, rewards: 14 },    // 低风险：2炸弹，14奖励
+                medium: { bombs: 4, rewards: 12 }, // 中风险：4炸弹，12奖励
+                high: { bombs: 6, rewards: 10 }     // 高风险：6炸弹，10奖励
             },
             
             // 游戏状态
@@ -1302,15 +1333,34 @@
         
         // 初始化轮次风险类型
         function initializeRoundTypes() {
-            // 创建3轮低风险、3轮中风险、3轮高风险的数组
-            const types = [
-                'low', 'low', 'low',
-                'medium', 'medium', 'medium',
-                'high', 'high', 'high'
-            ];
+            // 前两场：从低风险和中风险中随机选择
+            const firstTwoRounds = [];
+            const lowMediumPool = ['low', 'medium'];
+            firstTwoRounds.push(lowMediumPool[Math.floor(Math.random() * 2)]);
+            firstTwoRounds.push(lowMediumPool[Math.floor(Math.random() * 2)]);
             
-            // 随机打乱顺序
-            gameData.roundTypes = shuffleArray(types);
+            // 统计前两场使用的低风险和中风险数量
+            const usedLow = firstTwoRounds.filter(type => type === 'low').length;
+            const usedMedium = firstTwoRounds.filter(type => type === 'medium').length;
+            
+            // 剩余7场：补齐剩余的低、中、高风险
+            const remainingTypes = [];
+            // 添加剩余的低风险（总共3个，减去已用的）
+            for (let i = 0; i < (3 - usedLow); i++) {
+                remainingTypes.push('low');
+            }
+            // 添加剩余的中风险（总共3个，减去已用的）
+            for (let i = 0; i < (3 - usedMedium); i++) {
+                remainingTypes.push('medium');
+            }
+            // 添加所有高风险（3个）
+            remainingTypes.push('high', 'high', 'high');
+            
+            // 将剩余7场随机打乱
+            const shuffledRemaining = shuffleArray(remainingTypes);
+            
+            // 合并前两场和剩余场次
+            gameData.roundTypes = [...firstTwoRounds, ...shuffledRemaining];
         }
         
         // 数组随机打乱函数
@@ -1453,7 +1503,7 @@
             for (let i = 0; i < gameData.bombCount; i++) {
                 gameData.cards.push({
                     type: 'bomb',
-                    value: gameData.bombPenalty, // 固定惩罚850元
+                    value: gameData.bombPenalty, // 固定惩罚950元
                     flipped: false
                 });
             }
@@ -1462,13 +1512,14 @@
             for (let i = 0; i < rewardCount; i++) {
                 gameData.cards.push({
                     type: 'reward',
-                    value: gameData.rewardValue, // 固定奖励500元
+                    value: gameData.rewardValue, // 固定奖励300元
                     flipped: false
                 });
             }
             
             // 洗牌
             shuffleCards();
+            console.log('洗牌后验证 - 第1张:', gameData.cards[0].type, '第2张:', gameData.cards[1].type);
             
             // 渲染卡片
             gameData.cards.forEach((card, index) => {
@@ -1491,10 +1542,42 @@
         
         // 洗牌算法
         function shuffleCards() {
-            for (let i = gameData.cards.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [gameData.cards[i], gameData.cards[j]] = [gameData.cards[j], gameData.cards[i]];
+            // 先将炸弹和奖励卡分开
+            const bombs = [];
+            const rewards = [];
+            
+            gameData.cards.forEach(card => {
+                if (card.type === 'bomb') {
+                    bombs.push(card);
+                } else {
+                    rewards.push(card);
+                }
+            });
+            
+            console.log('洗牌前统计 - 炸弹数:', bombs.length, '奖励数:', rewards.length);
+            
+            // 确保前两张是奖励卡
+            gameData.cards = [];
+            if (rewards.length >= 2) {
+                gameData.cards.push(rewards[0]);
+                gameData.cards.push(rewards[1]);
+                
+                // 剩余的卡片（从第3张奖励开始和所有炸弹）
+                const remainingCards = [...rewards.slice(2), ...bombs];
+                
+                // 洗牌剩余的卡片
+                for (let i = remainingCards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [remainingCards[i], remainingCards[j]] = [remainingCards[j], remainingCards[i]];
+                }
+                
+                // 将剩余卡片加到前两张后面
+                gameData.cards.push(...remainingCards);
             }
+            
+            // 验证前两张牌（调试用）
+            console.log('洗牌后 - 第1张卡:', gameData.cards[0].type, '第2张卡:', gameData.cards[1].type);
+            console.log('所有卡片类型:', gameData.cards.map((c, i) => `[${i}]:${c.type}`).join(', '));
         }
         
         // 翻牌
@@ -1578,7 +1661,7 @@
                     gameData.users[gameData.currentUser].stats.bombTriggers++;
                 }
                 
-                // 固定扣除850元 - 从本轮奖金中扣除，可以为负数
+                // 固定扣除950元 - 从本轮奖金中扣除，可以为负数
                 const penaltyAmount = gameData.bombPenalty;
                 gameData.currentRoundBonus -= penaltyAmount;
                 
@@ -1610,7 +1693,7 @@
                         `-积分${Math.abs(gameData.totalBonus).toLocaleString()}`;
                     animateNumberRoll(totalBonusEl, displayTotalBonus, gameData.currentRoundBonus >= 0);
                     
-                    // 记录本轮数据到当前游戏会话
+                    // 记录本轮数据，但不立即保存
                     const roundData = {
                         roundNumber: gameData.currentRound,
                         riskType: gameData.roundTypes[gameData.currentRound - 1],
@@ -1630,49 +1713,13 @@
                         durationSeconds: Math.round((Date.now() - gameData.currentRoundStartTime) / 1000)
                     };
                     
-                    if (gameData.currentGameSession) {
-                        gameData.currentGameSession.rounds.push(roundData);
-                        gameData.currentGameSession.finalReward = gameData.totalBonus;
-                    }
+                    // 暂存本轮数据，等待情绪选择
+                    gameData.pendingRoundData = roundData;
+                    gameData.gameActive = false;
+                    gameData.roundEnded = true;
                     
-                    // 保存游戏数据和进度
-                    if (gameData.currentUser && gameData.users[gameData.currentUser]) {
-                        const userData = gameData.users[gameData.currentUser];
-                        userData.stats.totalRewards = gameData.totalBonus;
-                        
-                        // 更新游戏进度：当前轮次已完成
-                        if (userData.gameProgress) {
-                            userData.gameProgress.currentRound = gameData.currentRound;
-                            userData.gameProgress.totalBonus = gameData.totalBonus;
-                            userData.gameProgress.currentGameSession = gameData.currentGameSession;
-                            
-                            // 如果完成了9轮，标记为完成并保存到历史记录
-                            if (gameData.currentRound >= 9) {
-                                userData.gameProgress.isGameCompleted = true;
-                                gameData.currentGameSession.isCompleted = true;
-                                gameData.currentGameSession.gameEndTime = Date.now();
-                                
-                                // 将完成的游戏会话保存到历史记录
-                                if (!userData.gameProgress.allGameSessions) {
-                                    userData.gameProgress.allGameSessions = [];
-                                }
-                                userData.gameProgress.allGameSessions.push({...gameData.currentGameSession});
-                                
-                                // 同时保存到用户的sessions数组（兼容旧代码）
-                                if (!userData.sessions) {
-                                    userData.sessions = [];
-                                }
-                                userData.sessions.push({...gameData.currentGameSession});
-                            }
-                        }
-                    }
-                    
-                    saveUserData();
-                    
-                    // 延迟后返回开始游戏界面
-                    setTimeout(() => {
-                        showGameReadyState();
-                    }, 2000);
+                    // 显示情绪选择对话框
+                    showEmotionDialog();
                 }, 1000);
             }
             
@@ -1731,7 +1778,7 @@
             
             setTimeout(() => {
                 document.body.removeChild(explosion);
-            }, 1500);
+            }, 1300);
         }
         
         function showCoinEffect(startElement) {
@@ -1810,7 +1857,7 @@
                     if (document.body.contains(particle)) {
                         document.body.removeChild(particle);
                     }
-                }, 1500 + i * 30);
+                }, 1300 + i * 30);
             }
         }
         
@@ -1820,7 +1867,7 @@
             
             setTimeout(() => {
                 element.classList.remove('number-roll', 'number-fall');
-            }, 500);
+            }, 300);
         }
         
         function showConfirmDialog() {
@@ -1868,7 +1915,7 @@
                 if (document.body.contains(penaltyEffect)) {
                     document.body.removeChild(penaltyEffect);
                 }
-            }, 2500);
+            }, 2300);
         }
         
         // 用户管理函数
@@ -1891,8 +1938,9 @@
                         userData.gameProgress.currentGameSession = gameData.currentGameSession;
                     }
                     
-                    // 记录提前退出
-                    if (gameData.gameActive) {
+                    // 记录提前退出：如果当前轮游戏进行中且翻牌次数小于16张，视为提前退出
+                    if (gameData.gameActive && gameData.flippedCount < 16) {
+                        userData.stats.roundsPlayed++;
                         userData.stats.earlyExits++;
                     }
                 }
@@ -1946,6 +1994,82 @@
             return { success: true, message: '注册成功', isNewUser: true };
         }
         
+        // 显示情绪选择对话框
+        function showEmotionDialog() {
+            const dialog = document.getElementById('emotion-dialog');
+            // 清除之前的选择
+            document.querySelectorAll('input[name="emotion"]').forEach(radio => {
+                radio.checked = false;
+            });
+            dialog.style.display = 'flex';
+        }
+        
+        // 保存情绪选择并完成本轮
+        function saveEmotionChoice() {
+            const selectedEmotion = document.querySelector('input[name="emotion"]:checked');
+            if (!selectedEmotion) {
+                alert('请选择一个选项！');
+                return;
+            }
+            
+            // 将情绪选择添加到暂存的轮次数据
+            if (gameData.pendingRoundData) {
+                gameData.pendingRoundData.emotionChoice = selectedEmotion.value;
+                
+                // 将轮次数据添加到当前游戏会话
+                if (gameData.currentGameSession) {
+                    gameData.currentGameSession.rounds.push(gameData.pendingRoundData);
+                    gameData.currentGameSession.finalReward = gameData.totalBonus;
+                }
+                
+                // 更新用户总奖励和游戏进度
+                if (gameData.currentUser && gameData.users[gameData.currentUser]) {
+                    const userData = gameData.users[gameData.currentUser];
+                    userData.stats.totalRewards = gameData.totalBonus;
+                    
+                    // 更新游戏进度
+                    if (userData.gameProgress) {
+                        userData.gameProgress.currentRound = gameData.currentRound;
+                        userData.gameProgress.totalBonus = gameData.totalBonus;
+                        userData.gameProgress.currentGameSession = gameData.currentGameSession;
+                        
+                        // 如果完成了9轮，标记为完成并保存到历史记录
+                        if (gameData.currentRound >= 9) {
+                            userData.gameProgress.isGameCompleted = true;
+                            gameData.currentGameSession.isCompleted = true;
+                            gameData.currentGameSession.gameEndTime = Date.now();
+                            
+                            // 将完成的游戏会话保存到历史记录
+                            if (!userData.gameProgress.allGameSessions) {
+                                userData.gameProgress.allGameSessions = [];
+                            }
+                            userData.gameProgress.allGameSessions.push({...gameData.currentGameSession});
+                            
+                            // 同时保存到用户的sessions数组（兼容旧代码）
+                            if (!userData.sessions) {
+                                userData.sessions = [];
+                            }
+                            userData.sessions.push({...gameData.currentGameSession});
+                        }
+                    }
+                }
+                
+                // 保存数据
+                saveUserData();
+                
+                // 清除暂存数据
+                gameData.pendingRoundData = null;
+            }
+            
+            // 隐藏对话框
+            document.getElementById('emotion-dialog').style.display = 'none';
+            
+            // 延迟后返回开始游戏界面
+            setTimeout(() => {
+                showGameReadyState();
+            }, 2000);
+        }
+        
         function loginUser(username, password) {
             if (username === 'adminmb' && password === 'admin002') {
                 return { success: true, isAdmin: true };
@@ -1991,9 +2115,14 @@
             // 更新用户统计 - 只更新当前用户的数据
             if (gameData.currentUser && gameData.users[gameData.currentUser]) {
                 gameData.users[gameData.currentUser].stats.roundsPlayed++;
-                if (reason === 'stop') {
+                
+                // 只要翻牌数小于16，就算提前退出
+                if (gameData.flippedCount < 16) {
                     gameData.users[gameData.currentUser].stats.earlyExits++;
-                } else if (reason === 'bomb') {
+                }
+                
+                // 记录炸弹触发
+                if (reason === 'bomb') {
                     gameData.users[gameData.currentUser].stats.bombTriggers++;
                 }
             }
@@ -2044,32 +2173,11 @@
             
             roundData.totalBonusAfter = gameData.totalBonus;
             
-            // 将轮次数据添加到当前游戏会话
-            if (gameData.currentGameSession) {
-                gameData.currentGameSession.rounds.push(roundData);
-                gameData.currentGameSession.finalReward = gameData.totalBonus;
-            }
+            // 暂存本轮数据，等待情绪选择
+            gameData.pendingRoundData = roundData;
             
-            // 更新用户总奖励和游戏进度
-            if (gameData.currentUser && gameData.users[gameData.currentUser]) {
-                const userData = gameData.users[gameData.currentUser];
-                userData.stats.totalRewards = gameData.totalBonus;
-                
-                // 更新游戏进度
-                if (userData.gameProgress) {
-                    userData.gameProgress.currentRound = gameData.currentRound;
-                    userData.gameProgress.totalBonus = gameData.totalBonus;
-                    userData.gameProgress.currentGameSession = gameData.currentGameSession;
-                }
-            }
-            
-            // 保存数据
-            saveUserData();
-            
-            // 延迟后返回开始游戏界面
-            setTimeout(() => {
-                showGameReadyState();
-            }, 2000);
+            // 显示情绪选择对话框
+            showEmotionDialog();
         }
         
         // 开始下一轮
@@ -2101,10 +2209,9 @@
                     totalUsers++;
                     totalFlipsSum += userData.stats.totalFlips || 0;
                     
-                    // 计算该用户的提前退出率
-                    const roundsPlayed = userData.stats.roundsPlayed || 0;
+                    // 计算该用户的提前退出率：提前退出局数 / 9 * 100%
                     const earlyExits = userData.stats.earlyExits || 0;
-                    const userExitRate = roundsPlayed > 0 ? (earlyExits / roundsPlayed * 100) : 0;
+                    const userExitRate = (earlyExits / 9 * 100);
                     totalEarlyExitRateSum += userExitRate;
                 }
             });
@@ -2187,9 +2294,8 @@
                 const remainingSeconds = totalGameTimeSeconds % 60;
                 const totalGameTimeDisplay = `${totalMinutes}分${remainingSeconds}秒`;
                 
-                // 提前退出率
-                const earlyExitRate = userData.stats.roundsPlayed > 0 ? 
-                    (userData.stats.earlyExits / userData.stats.roundsPlayed * 100).toFixed(1) : '0.0';
+                // 提前退出率：提前退出局数 / 9 * 100%，保留一位小数
+                const earlyExitRate = ((userData.stats.earlyExits || 0) / 9 * 100).toFixed(1);
                 
                 // 平均翻牌次数
                 const avgFlips = userData.stats.roundsPlayed > 0 ? 
@@ -2250,8 +2356,8 @@
                 }
             });
             
-            // 从当前进行中的游戏会话中收集轮次数据
-            if (userData.gameProgress?.currentGameSession?.rounds) {
+            // 只有当游戏未完成时，才从当前进行中的游戏会话中收集轮次数据
+            if (userData.gameProgress?.currentGameSession?.rounds && !userData.gameProgress?.isGameCompleted) {
                 const currentSession = userData.gameProgress.currentGameSession;
                 currentSession.rounds.forEach(round => {
                     allRounds.push(round);
@@ -2278,7 +2384,6 @@
                 content += `<div class="round-table-container" style="margin-bottom: 25px;">`;
                 content += `<table style="width: 100%; border-collapse: collapse; background: rgba(0, 20, 40, 0.5); border-radius: 8px; overflow: hidden;">`;
                 content += `<thead><tr style="background: rgba(25, 118, 210, 0.3);">`;
-                content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">游戏场次</th>`;
                 content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">风险等级</th>`;
                 content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">翻牌次数</th>`;
                 content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">游戏时长</th>`;
@@ -2286,6 +2391,7 @@
                 content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">炸弹后翻牌数</th>`;
                 content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">炸弹触发次数</th>`;
                 content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">累积获得</th>`;
+                content += `<th style="padding: 10px; color: #4fc3f7; border-bottom: 1px solid rgba(255,255,255,0.1);">情绪状态</th>`;
                 content += `</tr></thead><tbody>`;
                 
                 roundData.forEach((round, index) => {
@@ -2318,8 +2424,23 @@
                     const balance = round.totalBonusAfter !== undefined ? 
                         `积分${round.totalBonusAfter.toLocaleString()}` : '未知';
                     
+                    // 情绪状态
+                    let emotionText = '未记录';
+                    let emotionColor = '#888';
+                    if (round.emotionChoice) {
+                        if (round.emotionChoice === 'A') {
+                            emotionText = '愉快、满意、轻松';
+                            emotionColor = '#4caf50';
+                        } else if (round.emotionChoice === 'B') {
+                            emotionText = '平静、无明显情绪';
+                            emotionColor = '#2196f3';
+                        } else if (round.emotionChoice === 'C') {
+                            emotionText = '紧张、失望、沮丧';
+                            emotionColor = '#f44336';
+                        }
+                    }
+                    
                     content += `<tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">`;
-                    content += `<td style="padding: 8px; color: #fff;">第${index + 1}场</td>`;
                     content += `<td style="padding: 8px; color: ${riskColor}; font-weight: bold;">${riskText}</td>`;
                     content += `<td style="padding: 8px; color: #fff;">${round.flippedCards || 0}</td>`;
                     content += `<td style="padding: 8px; color: #fff;">${gameTimeDisplay}</td>`;
@@ -2327,6 +2448,7 @@
                     content += `<td style="padding: 8px; color: #fff;">${flipsAfterBomb}</td>`;
                     content += `<td style="padding: 8px; color: #fff;">${bombCount}</td>`;
                     content += `<td style="padding: 8px; color: #fff;">${balance}</td>`;
+                    content += `<td style="padding: 8px; color: ${emotionColor}; font-weight: bold;">${emotionText}</td>`;
                     content += `</tr>`;
                 });
                 
@@ -2466,8 +2588,8 @@
                     });
                 }
                 
-                const earlyExitRate = userData.stats.roundsPlayed > 0 ? 
-                    ((userData.stats.earlyExits / userData.stats.roundsPlayed) * 100).toFixed(2) : '0.00';
+                // 提前退出率：提前退出局数 / 9 * 100%，保留一位小数
+                const earlyExitRate = ((userData.stats.earlyExits || 0) / 9 * 100).toFixed(1);
                 const avgFlips = userData.stats.roundsPlayed > 0 ? 
                     (userData.stats.totalFlips / userData.stats.roundsPlayed).toFixed(1) : '0.0';
                 
@@ -2498,7 +2620,7 @@
             
             // 2. 创建详细轮次数据表
             const roundDetailData = [];
-            roundDetailData.push(['用户名', '游戏场次', '轮次', '风险等级', '翻牌次数', '游戏时长(秒)', '触发炸弹后继续', '炸弹后翻牌数', '炸弹触发次数', '轮次余额', '结束时间']);
+            roundDetailData.push(['用户名', '游戏场次', '轮次', '风险等级', '翻牌次数', '游戏时长(秒)', '触发炸弹后继续', '炸弹后翻牌数', '炸弹触发次数', '轮次余额', '结束时间', '情绪状态']);
             
             Object.keys(gameData.users).forEach(username => {
                 if (username === 'admin') return;
@@ -2518,7 +2640,8 @@
                     }
                 });
                 
-                if (userData.gameProgress?.currentGameSession?.rounds) {
+                // 只有当游戏未完成时，才从当前进行中的游戏会话中收集轮次数据
+                if (userData.gameProgress?.currentGameSession?.rounds && !userData.gameProgress?.isGameCompleted) {
                     const currentSessionIndex = allGameSessions.length + 1;
                     userData.gameProgress.currentGameSession.rounds.forEach(round => {
                         allRounds.push({
@@ -2537,6 +2660,16 @@
                     const bombCount = round.bombsTriggered || 0;
                     const endTime = round.completedAt ? new Date(round.completedAt).toLocaleString('zh-CN') : '';
                     
+                    // 情绪状态转换
+                    let emotionText = '未记录';
+                    if (round.emotionChoice === 'A') {
+                        emotionText = '愉快、满意、轻松';
+                    } else if (round.emotionChoice === 'B') {
+                        emotionText = '平静、无明显情绪';
+                    } else if (round.emotionChoice === 'C') {
+                        emotionText = '紧张、失望、沮丧';
+                    }
+                    
                     roundDetailData.push([
                         username,
                         `第${round.sessionIndex}场`,
@@ -2548,7 +2681,8 @@
                         flipsAfterBomb,
                         bombCount,
                         round.totalBonusAfter || 0,
-                        endTime
+                        endTime,
+                        emotionText
                     ]);
                 });
             });
@@ -2570,9 +2704,9 @@
                 if (userData.stats) {
                     totalUsers++;
                     totalFlipsSum += userData.stats.totalFlips || 0;
-                    const roundsPlayed = userData.stats.roundsPlayed || 0;
+                    // 提前退出率：提前退出局数 / 9 * 100%
                     const earlyExits = userData.stats.earlyExits || 0;
-                    const userExitRate = roundsPlayed > 0 ? (earlyExits / roundsPlayed * 100) : 0;
+                    const userExitRate = (earlyExits / 9 * 100);
                     totalEarlyExitRateSum += userExitRate;
                 }
             });
@@ -2819,8 +2953,8 @@
                     });
                 }
                 
-                const earlyExitRate = userData.stats.roundsPlayed > 0 ? 
-                    ((userData.stats.earlyExits / userData.stats.roundsPlayed) * 100).toFixed(2) : '0.00';
+                // 提前退出率：提前退出局数 / 9 * 100%，保留一位小数
+                const earlyExitRate = ((userData.stats.earlyExits || 0) / 9 * 100).toFixed(1);
                 const avgFlips = userData.stats.roundsPlayed > 0 ? 
                     (userData.stats.totalFlips / userData.stats.roundsPlayed).toFixed(1) : '0.0';
                 
@@ -2837,7 +2971,7 @@
             });
             
             csv += '\n\n轮次详细数据\n';
-            csv += '用户名,游戏场次,轮次,风险等级,翻牌次数,游戏时长(秒),触发炸弹后继续,炸弹后翻牌数,炸弹触发次数,轮次余额,结束时间\n';
+            csv += '用户名,游戏场次,轮次,风险等级,翻牌次数,游戏时长(秒),触发炸弹后继续,炸弹后翻牌数,炸弹触发次数,轮次余额,结束时间,情绪状态\n';
             
             Object.keys(gameData.users).forEach(username => {
                 if (username === 'admin') return;
@@ -2854,7 +2988,8 @@
                     }
                 });
                 
-                if (userData.gameProgress?.currentGameSession?.rounds) {
+                // 只有当游戏未完成时，才从当前进行中的游戏会话中收集轮次数据
+                if (userData.gameProgress?.currentGameSession?.rounds && !userData.gameProgress?.isGameCompleted) {
                     const currentSessionIndex = allGameSessions.length + 1;
                     userData.gameProgress.currentGameSession.rounds.forEach(round => {
                         allRounds.push({sessionIndex: currentSessionIndex, ...round});
@@ -2870,7 +3005,17 @@
                     const bombCount = round.bombsTriggered || 0;
                     const endTime = round.completedAt ? new Date(round.completedAt).toLocaleString('zh-CN') : '';
                     
-                    csv += `${username},第${round.sessionIndex}场,第${round.roundNumber}轮,${riskText},${round.flippedCards || 0},${round.durationSeconds || 0},${continueAfterBomb},${flipsAfterBomb},${bombCount},${round.totalBonusAfter || 0},${endTime}\n`;
+                    // 情绪状态转换
+                    let emotionText = '未记录';
+                    if (round.emotionChoice === 'A') {
+                        emotionText = '愉快、满意、轻松';
+                    } else if (round.emotionChoice === 'B') {
+                        emotionText = '平静、无明显情绪';
+                    } else if (round.emotionChoice === 'C') {
+                        emotionText = '紧张、失望、沮丧';
+                    }
+                    
+                    csv += `${username},第${round.sessionIndex}场,第${round.roundNumber}轮,${riskText},${round.flippedCards || 0},${round.durationSeconds || 0},${continueAfterBomb},${flipsAfterBomb},${bombCount},${round.totalBonusAfter || 0},${endTime},${emotionText}\n`;
                 });
             });
             
@@ -2923,7 +3068,7 @@
                         document.getElementById('password').value = '';
                         errorEl.textContent = '';
                         errorEl.style.color = '#ff4444';
-                    }, 1500);
+                    }, 1300);
                 } else {
                     errorEl.textContent = result.message;
                 }
@@ -3011,6 +3156,11 @@
             hideConfirmDialog();
         });
         
+        // 情绪确认按钮事件监听
+        document.getElementById('emotion-confirm').addEventListener('click', () => {
+            saveEmotionChoice();
+        });
+        
         // 付费对话框事件监听
         document.getElementById('payment-confirm').addEventListener('click', () => {
             hidePaymentDialog();
@@ -3050,7 +3200,7 @@
             for (let i = 0; i < 15; i++) {
                 gameData.playerSessions.push({
                     startTime: Date.now() - Math.random() * 86400000 * 7, // 过去一周内
-                    totalRewards: Math.floor(Math.random() * 500) + 50,
+                    totalRewards: Math.floor(Math.random() * 300) + 50,
                     rounds: Array.from({length: Math.floor(Math.random() * 10) + 1}, (_, j) => ({
                         round: j + 1,
                         flippedCards: Math.floor(Math.random() * 16) + 1,
