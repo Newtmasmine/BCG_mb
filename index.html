@@ -1525,10 +1525,11 @@
             gameData.cards.forEach((card, index) => {
                 const cardEl = document.createElement('div');
                 cardEl.className = 'card';
+                cardEl.setAttribute('data-index', index); // 添加数据索引
                 cardEl.innerHTML = `
                     <div class="card-front">?</div>
                     <div class="card-back">
-                        <div class="card-value">${card.type === 'reward' ? '积分' + card.value : '💣'}</div>
+                        <div class="card-value"></div>
                     </div>
                 `;
                 
@@ -1585,7 +1586,37 @@
             if (!gameData.gameActive || gameData.roundEnded || gameData.cards[index].flipped) return;
             
             const card = gameData.cards[index];
-            card.flipped = true;
+            
+            // **关键修改：前两次翻牌时，如果翻到炸弹，则替换为奖励卡**
+            if (gameData.flippedCount < 2) {
+                if (card.type === 'bomb') {
+                    console.log(`第${gameData.flippedCount + 1}次翻牌遇到炸弹，寻找未翻开的奖励卡进行交换`);
+                    
+                    // 找到一张未翻开的奖励卡
+                    const unflippedRewardIndex = gameData.cards.findIndex((c, i) => 
+                        !c.flipped && c.type === 'reward' && i !== index
+                    );
+                    
+                    if (unflippedRewardIndex !== -1) {
+                        // 交换当前卡片和找到的奖励卡
+                        console.log(`交换索引 ${index} (炸弹) 和 ${unflippedRewardIndex} (奖励)`);
+                        const temp = gameData.cards[index];
+                        gameData.cards[index] = gameData.cards[unflippedRewardIndex];
+                        gameData.cards[unflippedRewardIndex] = temp;
+                        
+                        // 重新获取交换后的卡片
+                        const swappedCard = gameData.cards[index];
+                        console.log(`交换后，索引 ${index} 现在是: ${swappedCard.type}`);
+                    } else {
+                        console.warn('警告：没有找到可交换的未翻开奖励卡！');
+                    }
+                }
+            }
+            
+            // 重新获取当前索引的卡片（可能已被交换）
+            const currentCard = gameData.cards[index];
+            
+            currentCard.flipped = true;
             gameData.flippedCount++;
             
             // 如果本轮已经触发过第一个炸弹，则记录此后的翻牌次数
@@ -1611,12 +1642,23 @@
             remainingCardsEl.textContent = 16 - gameData.flippedCount;
             
             const cardEl = gameBoard.children[index];
+            
+            // **关键修复：在翻牌前根据交换后的卡片类型更新显示内容**
+            const cardValueEl = cardEl.querySelector('.card-value');
+            if (cardValueEl) {
+                if (currentCard.type === 'reward') {
+                    cardValueEl.textContent = '积分' + currentCard.value;
+                } else {
+                    cardValueEl.textContent = '💣';
+                }
+            }
+            
             cardEl.classList.add('flipped');
             
             // 处理卡片类型
-            if (card.type === 'reward') {
+            if (currentCard.type === 'reward') {
                 cardEl.classList.add('reward');
-                gameData.currentRoundBonus += card.value;
+                gameData.currentRoundBonus += currentCard.value;
                 
                 // 显示金币特效
                 showCoinEffect(cardEl);
@@ -1630,7 +1672,7 @@
                     animateNumberRoll(currentBonusEl, displayBonus, true);
                 }, 300);
                 
-                gameMessageEl.textContent = `恭喜！获得 积分${card.value.toLocaleString()} 奖励！`;
+                gameMessageEl.textContent = `恭喜！获得 积分${currentCard.value.toLocaleString()} 奖励！`;
                 gameMessageEl.style.color = '#4caf50';
                 
                 // 不再检查所有奖励卡是否翻完，只在16张卡全部翻完时结束
@@ -2725,7 +2767,7 @@
             // 转换为Excel并下载
             // 生成文件名：目标_用户名1_用户名2...
             const filename = usernames.length > 0 ? 
-                `目标_${usernames.join('_')}.xlsx` : 
+                `${usernames.join('_')}.xlsx` : 
                 '目标_无用户数据.xlsx';
             downloadExcel(wb, filename);
         }
